@@ -9,7 +9,8 @@ import { parse } from '@stoplight/yaml';
 //@ts-ignore
 import * as fetchFactory from 'make-fetch-happen';
 import { pipe } from 'fp-ts/lib/pipeable'
-import * as E from 'fp-ts/lib/Either'
+import * as R from 'fp-ts/lib/Reader'
+import * as RE from 'fp-ts/lib/ReaderEither'
 import { ProblemJsonError } from '@stoplight/prism-core';
 
 const fetch: typeof import('node-fetch').default = fetchFactory.defaults({ cacheManager: './cache' });
@@ -57,13 +58,12 @@ const server = micri(async function requestHandler(req, res) {
   const operations = await grabOperationsSomehow();
 
   return pipe(
-    route({ resources: operations, input }),
-    E.chain(resource => mock({ resource, input: { data: input, validations: [] }, config: { dynamic: true } })(logger)),
-    E.mapLeft(e => ProblemJsonError.fromPlainError(e)),
-    E.fold(e => send(res, e.status, e), response => send(res, response.statusCode, response.body))
-  );
+    RE.fromEither(route({ resources: operations, input })),
+    RE.chain(resource => mock({ resource, input: { data: input, validations: [] }, config: { dynamic: true } })),
+    RE.mapLeft(e => ProblemJsonError.fromPlainError(e)),
+    RE.fold(e => R.of(send(res, e.status, e)), response => R.of(send(res, response.statusCode, response.body)))
+  )(logger);
 
 });
 
 server.listen(process.env.PORT || 3000, () => console.info('Ready'));
-

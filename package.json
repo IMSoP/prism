@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
   "devDependencies": {
     "@stoplight/prism-cli": "3.2.0-beta.4",
     "@stoplight/types": "11.1.1",
