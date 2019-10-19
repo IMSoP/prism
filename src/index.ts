@@ -11,7 +11,6 @@ import * as R from 'fp-ts/lib/Reader'
 import * as RE from 'fp-ts/lib/ReaderEither'
 import { ProblemJsonError } from '@stoplight/prism-core';
 
-
 function createPrismInput(url: string, body: unknown, method: string) {
   const parsedUrl = new URL(url, 'http://localhost:3000');
 
@@ -23,17 +22,17 @@ function createPrismInput(url: string, body: unknown, method: string) {
       query: Object.fromEntries(parsedUrl.searchParams.entries())
     }
   };
-
 }
 
 const logger = createLogger('Server');
+
 const server = micri(async function requestHandler(req, res) {
   const body = await (typeis(req, ['application/json', 'application/*+json']) ? json(req) : text(req));
   const input = createPrismInput(req.url!, body, req.method!);
-  const operations = await grabOperationsSomehow();
+  const resources = await grabOperationsSomehow();
 
   return pipe(
-    RE.fromEither(route({ resources: operations, input })),
+    RE.fromEither(route({ resources, input })),
     RE.chain(resource => mock({ resource, input: { data: input, validations: [] }, config: { dynamic: true } })),
     RE.mapLeft(e => ProblemJsonError.fromPlainError(e)),
     RE.fold(e => R.of(send(res, e.status, e)), response => R.of(send(res, response.statusCode, response.body)))

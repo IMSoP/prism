@@ -4,6 +4,9 @@
     "module": "commonjs",
     "strict": true,
     "importHelpers": true,
-    "outDir": "lib"
-  }
+    "outDir": "lib",
+  },
+  "include": [
+    "src"
+  ]
 }
