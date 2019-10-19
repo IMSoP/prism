@@ -6,8 +6,6 @@ import { createLogger } from '@stoplight/prism-core/dist/logger';
 import * as typeis from 'type-is';
 import { HttpMethod } from '@stoplight/types';
 import grabOperationsSomehow from './grabOperations'
-
-
 import { pipe } from 'fp-ts/lib/pipeable'
 import * as R from 'fp-ts/lib/Reader'
 import * as RE from 'fp-ts/lib/ReaderEither'
