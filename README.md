@@ -1,3 +1,3 @@
-# Nazino
+# Nasino
 
-Nazino is the code name of Hosted Prism project.
+Nasino is the code name of Hosted Prism project.
