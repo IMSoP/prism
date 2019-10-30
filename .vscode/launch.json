@@ -9,8 +9,12 @@
       "request": "launch",
       "name": "Launch Program",
       "program": "${workspaceFolder}/node_modules/.bin/ts-node",
+      "skipFiles": [
+        "${workspaceFolder}/node_modules/**/fp-ts/lib/*.js",
+        "<node_internals>/**",
+      ],
       "args": [
-        "${workspaceFolder}/index.ts"
+        "${workspaceFolder}/src/index.ts"
       ],
       "outFiles": [
         "${workspaceFolder}/**/*.js"
