@@ -36,6 +36,4 @@ WORKDIR /usr/src/prism/
 
 EXPOSE 3000
 
-VOLUME /usr/src/prism/cache
-
 ENTRYPOINT [ "node", "lib/index.js" ]
