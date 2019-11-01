@@ -26,11 +26,10 @@ FROM node:12-alpine
 
 WORKDIR /usr/src/prism
 ENV NODE_ENV production
+ENV BASE_URL http://localhost:3000
 
 COPY package.json /usr/src/prism/
-
 COPY --from=compiler /usr/src/prism/lib /usr/src/prism/lib
-
 COPY --from=dependencies /usr/src/prism/node_modules/ /usr/src/prism/node_modules/
 
 WORKDIR /usr/src/prism/

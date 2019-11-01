@@ -14,8 +14,10 @@ import * as RE from 'fp-ts/lib/ReaderEither'
 import { ProblemJsonError, IPrismDiagnostic } from '@stoplight/prism-core';
 import { IHttpRequest } from '@stoplight/prism-http';
 
+const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
 function createPrismInput(url: string, body: unknown, method: string) {
-  const parsedUrl = new URL(url, 'http://localhost:3000');
+  const parsedUrl = new URL(url, baseUrl);
 
   return {
     body,
