@@ -7,9 +7,7 @@ import { pipe } from 'fp-ts/lib/pipeable'
 //@ts-ignore
 import * as fetchFactory from 'make-fetch-happen';
 
-const fetch: typeof import('node-fetch').default = fetchFactory.defaults({
-  cacheManager: './cache',
-});
+const fetch: typeof import('node-fetch').default = fetchFactory.defaults({ cacheManager: './cache' });
 
 type ApiResult = {
   items: {
@@ -37,11 +35,11 @@ function findServiceNode(projectNodes: ApiResult, serviceName: string) {
 function findHttpOperations(projectNodes: ApiResult['items'], serviceNode: ApiResult['items'][0]) {
   return TE.tryCatch(() => Promise.all(
     projectNodes
-      .filter(t => t.type === 'http_operation' && t.srn.indexOf(serviceNode.srn))
-      .map(f =>
-        fetch(`https://stoplight.io/api/nodes.raw?srn=${encodeURIComponent(f.srn)}`)
-          .then(x => x.text())
-          .then(q => parse<IHttpOperation>(q))
+      .filter(node => node.type === 'http_operation' && node.srn.indexOf(serviceNode.srn))
+      .map(operationNode =>
+        fetch(`https://stoplight.io/api/nodes.raw?srn=${encodeURIComponent(operationNode.srn)}`)
+          .then(data => data.text())
+          .then<IHttpOperation>(parse)
       )
   ), E.toError)
 }

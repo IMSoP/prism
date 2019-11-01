@@ -22,10 +22,10 @@ type ApiLocationInfo = { sc: string, org: string, project: string; serviceName: 
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
-function createPrismInput(url: URL, body: unknown, method: string) {
+function createPrismInput(url: URL, body: unknown, method: HttpMethod) {
   return {
     body,
-    method: method as HttpMethod,
+    method,
     url: {
       path: url.pathname,
       query: Object.fromEntries(url.searchParams.entries()),
@@ -62,7 +62,7 @@ const server = micri(function requestHandler(req, res) {
         const configFromQueryString = readConfigFromQueryString(parsedUrl.searchParams);
 
         const body = await bodyPromise;
-        const input = createPrismInput(parsedUrl, body, req.method!);
+        const input = createPrismInput(parsedUrl, body, req.method as HttpMethod);
 
         return pipe(
           RTE.fromTaskEither(grabOperationsSomehow(params.sc, params.org, params.project, params.serviceName)),
