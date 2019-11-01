@@ -8,8 +8,8 @@
   },
   "devDependencies": {
     "@stoplight/types": "11.1.1",
-    "@types/node": "12.12.3",
-    "@types/node-fetch": "2.5.2",
+    "@types/node": "12.12.5",
+    "@types/node-fetch": "2.5.3",
     "@types/pino": "5.8.13",
     "@types/raw-body": "^2.3.0",
     "@types/type-is": "1.6.3",
