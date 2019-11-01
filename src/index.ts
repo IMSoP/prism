@@ -18,7 +18,7 @@ import { IHttpRequest, IHttpOperationConfig } from '@stoplight/prism-http';
 // @ts-ignore
 import { URI } from 'uri-template-lite';
 
-type ApiLocationInfo = { project: string; serviceName: string; prismUrl: string[] };
+type ApiLocationInfo = { sc: string, org: string, project: string; serviceName: string; prismUrl: string[] };
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
@@ -53,7 +53,7 @@ function readConfigFromQueryString(queryString: URLSearchParams): IHttpOperation
 
 const server = micri(function requestHandler(req, res) {
   return pipe(
-    O.fromNullable<ApiLocationInfo>(new URI.Template('/{project}/{serviceName}{/prismUrl*}').match(req.url)),
+    O.fromNullable<ApiLocationInfo>(new URI.Template('/{sc}/{org}/{project}/{serviceName}{/prismUrl*}').match(req.url)),
     O.fold(
       () => send(res, 404),
       async params => {
@@ -65,7 +65,7 @@ const server = micri(function requestHandler(req, res) {
         const input = createPrismInput(parsedUrl, body, req.method!);
 
         return pipe(
-          RTE.fromTaskEither(grabOperationsSomehow(params.project, params.serviceName)),
+          RTE.fromTaskEither(grabOperationsSomehow(params.sc, params.org, params.project, params.serviceName)),
           RTE.chain(resources => RTE.fromEither(route({ resources, input }))),
           RTE.chain(resource => RTE.fromReaderEither(validateInputAndMock(resource, input, configFromQueryString))),
           RTE.mapLeft(e => ProblemJsonError.fromPlainError(e)),

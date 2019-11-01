@@ -19,9 +19,9 @@ type ApiResult = {
   }[]
 };
 
-function fetchProjectDetails(project: string) {
+function fetchProjectDetails(sc: string, org: string, project: string) {
   return TE.tryCatch<Error, ApiResult>(() => fetch(
-    `https://stoplight.io/api/projects.nodes?srn=gh/stoplightio/${encodeURIComponent(project)}`
+    `https://stoplight.io/api/projects.nodes?srn=${encodeURIComponent(sc)}/${encodeURIComponent(org)}/${encodeURIComponent(project)}`
   ).then(d => d.json()), E.toError);
 }
 
@@ -46,9 +46,9 @@ function findHttpOperations(projectNodes: ApiResult['items'], serviceNode: ApiRe
   ), E.toError)
 }
 
-export default function grabOperationsSomehow(project: string, serviceName: string): TE.TaskEither<Error, IHttpOperation[]> {
+export default function grabOperationsSomehow(sc: string, org: string, project: string, serviceName: string): TE.TaskEither<Error, IHttpOperation[]> {
   return pipe(
-    fetchProjectDetails(project),
+    fetchProjectDetails(sc, org, project),
     TE.chain(projectNodes => findServiceNode(projectNodes, serviceName)),
     TE.chain(({ projectNodes, serviceNode }) => findHttpOperations(projectNodes.items, serviceNode))
   )
