@@ -5,14 +5,14 @@ import * as fetchFactory from 'make-fetch-happen';
 
 const fetch: typeof import('node-fetch').default = fetchFactory.defaults({ cacheManager: './cache' });
 
-export default async function grabOperationsSomehow(): Promise<IHttpOperation[]> {
+export default async function grabOperationsSomehow(project: string): Promise<IHttpOperation[]> {
   type node = {
     type: string;
     id: string;
     srn: string;
   };
   const projectNodes: { items: node[] } = await fetch(
-    'https://stoplight.io/api/projects.nodes?srn=gh/stoplightio/studio-demo'
+    `https://stoplight.io/api/projects.nodes?srn=gh/stoplightio/${project}`
   ).then(d => d.json());
 
   return Promise.all(

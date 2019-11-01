@@ -13,6 +13,9 @@ import * as E from 'fp-ts/lib/Either'
 import * as RE from 'fp-ts/lib/ReaderEither'
 import { ProblemJsonError, IPrismDiagnostic } from '@stoplight/prism-core';
 import { IHttpRequest, IHttpOperationConfig } from '@stoplight/prism-http';
+// @ts-ignore
+import { URI } from 'uri-template-lite';
+
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
@@ -46,12 +49,14 @@ function readConfigFromQueryString(queryString: URLSearchParams): IHttpOperation
 }
 
 const server = micri(async function requestHandler(req, res) {
-  const resourcesPromise = grabOperationsSomehow();
-  const body = await (typeis(req, ['application/json', 'application/*+json']) ? json(req) : text(req));
-  const parsedUrl = new URL(req.url!, baseUrl);
-  const input = createPrismInput(parsedUrl, body, req.method!);
-  const configFromQueryString = readConfigFromQueryString(parsedUrl.searchParams)
+  const params: { project: string, prismUrl: string[] } = new URI.Template('/{project}{/prismUrl*}').match(req.url);
+  const resourcesPromise = grabOperationsSomehow(params.project);
+  const bodyPromise = (typeis(req, ['application/json', 'application/*+json']) ? json(req) : text(req));
+  const parsedUrl = new URL(params.prismUrl.join('/'), baseUrl);
+  const configFromQueryString = readConfigFromQueryString(parsedUrl.searchParams);
 
+  const body = await bodyPromise;
+  const input = createPrismInput(parsedUrl, body, req.method!);
   const resources = await resourcesPromise;
 
   return pipe(

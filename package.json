@@ -23,6 +23,7 @@
     "make-fetch-happen": "6.0.1",
     "micri": "2.0.1",
     "tslib": "1.10.0",
-    "type-is": "1.6.18"
+    "type-is": "1.6.18",
+    "uri-template-lite": "^19.4.0"
   }
 }

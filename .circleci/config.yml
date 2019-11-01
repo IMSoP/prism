@@ -1,0 +1,21 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/node:12
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            - v1-dependencies-
+      - run: yarn
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+      - setup_remote_docker
+      - run: echo $DOCKER_PASSWORD | docker login -u="stoplight+circleci" --password-stdin quay.io
+      - run: docker build -t quay.io/stoplight/prism:3 .
+      - run: docker push quay.io/stoplight/prism:3
