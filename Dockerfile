@@ -27,6 +27,7 @@ FROM node:12-alpine
 WORKDIR /usr/src/prism
 ENV NODE_ENV production
 ENV BASE_URL http://localhost:3000
+ENV STOPLIGHT_API_URL https://stoplight.io/
 
 COPY package.json /usr/src/prism/
 COPY --from=compiler /usr/src/prism/lib /usr/src/prism/lib

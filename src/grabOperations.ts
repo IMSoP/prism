@@ -7,6 +7,8 @@ import { pipe } from 'fp-ts/lib/pipeable'
 //@ts-ignore
 import * as fetchFactory from 'make-fetch-happen'
 
+const apiBaseUrl = process.env.STOPLIGHT_BASE_URL || 'https://stoplight.io/';
+
 const fetch: typeof import('node-fetch').default = fetchFactory.defaults({
   cacheManager: './cache',
   cache: process.env.NODE_ENV === 'production' ? 'default' : 'no-cache',
@@ -27,16 +29,20 @@ type ApiResult = {
 }
 
 function fetchProjectDetails(sc: string, org: string, project: string) {
+
+  const url = new URL('api/projects.nodes', apiBaseUrl);
+  const searchParams = new URLSearchParams({ srn: `${sc}/${org}/${project}` });
+  url.search = String(searchParams);
+
   function handleNextPage(result: ApiResult): TE.TaskEither<Error, ApiResult> {
     if (result.pageInfo.hasNextPage) {
       return pipe(
         TE.tryCatch<Error, ApiResult>(
-          () =>
-            fetch(
-              `https://stoplight.io/api/projects.nodes?srn=${encodeURIComponent(sc)}/${encodeURIComponent(
-                org
-              )}/${encodeURIComponent(project)}&after=${encodeURIComponent(result.pageInfo.endCursor)}`
-            ).then(d => d.json()),
+          () => {
+            searchParams.append('after', result.pageInfo.endCursor)
+            url.search = String(searchParams);
+            return fetch(String(url)).then(d => d.json())
+          },
           E.toError
         ),
         TE.chain(res => {
@@ -50,15 +56,7 @@ function fetchProjectDetails(sc: string, org: string, project: string) {
   }
 
   return pipe(
-    TE.tryCatch<Error, ApiResult>(
-      () =>
-        fetch(
-          `https://stoplight.io/api/projects.nodes?srn=${encodeURIComponent(sc)}/${encodeURIComponent(
-            org
-          )}/${encodeURIComponent(project)}`
-        ).then(d => d.json()),
-      E.toError
-    ),
+    TE.tryCatch<Error, ApiResult>(() => fetch(String(url)).then(d => d.json()), E.toError),
     TE.chain(handleNextPage)
   )
 }
