@@ -67,7 +67,7 @@ function findServiceNode(projectNodes: ApiResult, serviceName: string) {
   return pipe(
     projectNodes.items,
     A.findFirst(t => t.type === 'http_service' && t.srn.includes(serviceName)),
-    TE.fromOption(() => ProblemJsonError.fromTemplate(NOT_FOUND, 'Unable to find the http service')),
+    TE.fromOption(() => ProblemJsonError.fromTemplate(NOT_FOUND, 'Unable to find the http service') as Error),
     TE.map(serviceNode => ({ serviceNode, projectNodes }))
   )
 }
