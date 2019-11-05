@@ -38,4 +38,6 @@ WORKDIR /usr/src/prism/
 
 EXPOSE 3000
 
+HEALTHCHECK CMD curl -f http://localhost:${PORT}/ || exit 1
+
 ENTRYPOINT [ "node", "lib/index.js" ]

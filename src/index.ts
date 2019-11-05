@@ -1,4 +1,4 @@
-import { json, text, send } from 'micri';
+import { json, text, send, Router, ServerResponse, IncomingMessage } from 'micri';
 import micri from 'micri';
 import route from '@stoplight/prism-http/dist/router';
 import mock from '@stoplight/prism-http/dist/mocker';
@@ -51,29 +51,32 @@ function readConfigFromQueryString(queryString: URLSearchParams): IHttpOperation
   };
 }
 
-const server = micri(function requestHandler(req, res) {
-  return pipe(
-    O.fromNullable<ApiLocationInfo>(new URI.Template('/{sc}/{org}/{project}/{serviceName}{/prismUrl*}').match(req.url)),
-    O.fold(
-      () => send(res, 404),
-      async params => {
-        const bodyPromise = typeis(req, ['application/json', 'application/*+json']) ? json(req) : text(req);
-        const parsedUrl = new URL(Array.isArray(params.prismUrl) ? params.prismUrl.join('/') : params.prismUrl, baseUrl);
-        const configFromQueryString = readConfigFromQueryString(parsedUrl.searchParams);
+const server = micri(
+  Router.router(
+    Router.on.get((req: IncomingMessage) => req.url === '/_health', (_req: IncomingMessage, res: ServerResponse) => send(res, 200)),
+    Router.otherwise(function requestHandler(req, res) {
+      return pipe(
+        O.fromNullable<ApiLocationInfo>(new URI.Template('/{sc}/{org}/{project}/{serviceName}{/prismUrl*}').match(req.url)),
+        O.fold(
+          () => send(res, 404),
+          async params => {
+            const bodyPromise = typeis(req, ['application/json', 'application/*+json']) ? json(req) : text(req);
+            const parsedUrl = new URL(Array.isArray(params.prismUrl) ? params.prismUrl.join('/') : params.prismUrl, baseUrl);
+            const configFromQueryString = readConfigFromQueryString(parsedUrl.searchParams);
 
-        const body = await bodyPromise;
-        const input = createPrismInput(parsedUrl, body, req.method as HttpMethod);
+            const body = await bodyPromise;
+            const input = createPrismInput(parsedUrl, body, req.method as HttpMethod);
 
-        return pipe(
-          RTE.fromTaskEither(grabOperationsSomehow(params.sc, params.org, params.project, params.serviceName)),
-          RTE.chain(resources => RTE.fromEither(route({ resources, input }))),
-          RTE.chain(resource => RTE.fromReaderEither(validateInputAndMock(resource, input, configFromQueryString))),
-          RTE.mapLeft(e => ProblemJsonError.fromPlainError(e)),
-          RTE.fold(e => R.of(T.of(send(res, e.status, e))), response => R.of(T.of(send(res, response.statusCode, response.body))))
-        )(logger)();
-      }
-    )
-  );
-});
+            return pipe(
+              RTE.fromTaskEither(grabOperationsSomehow(params.sc, params.org, params.project, params.serviceName)),
+              RTE.chain(resources => RTE.fromEither(route({ resources, input }))),
+              RTE.chain(resource => RTE.fromReaderEither(validateInputAndMock(resource, input, configFromQueryString))),
+              RTE.mapLeft(e => ProblemJsonError.fromPlainError(e)),
+              RTE.fold(e => R.of(T.of(send(res, e.status, e))), response => R.of(T.of(send(res, response.statusCode, response.body))))
+            )(logger)();
+          }
+        )
+      );
+    })));
 
 server.listen(process.env.PORT || 3000, () => console.info('Ready'));
