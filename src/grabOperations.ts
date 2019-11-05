@@ -6,6 +6,8 @@ import * as A from 'fp-ts/lib/Array'
 import { pipe } from 'fp-ts/lib/pipeable'
 //@ts-ignore
 import * as fetchFactory from 'make-fetch-happen'
+import { NOT_FOUND } from '@stoplight/prism-http'
+import { ProblemJsonError } from '@stoplight/prism-core'
 
 const apiBaseUrl = process.env.STOPLIGHT_BASE_URL || 'https://stoplight.io/';
 
@@ -65,7 +67,7 @@ function findServiceNode(projectNodes: ApiResult, serviceName: string) {
   return pipe(
     projectNodes.items,
     A.findFirst(t => t.type === 'http_service' && t.srn.includes(serviceName)),
-    TE.fromOption(() => new Error('Unable to find the http service')),
+    TE.fromOption(() => ProblemJsonError.fromTemplate(NOT_FOUND, 'Unable to find the http service')),
     TE.map(serviceNode => ({ serviceNode, projectNodes }))
   )
 }
