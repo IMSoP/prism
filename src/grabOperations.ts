@@ -43,7 +43,7 @@ function fetchProjectDetails(sc: string, org: string, project: string) {
       searchParams.append('after', result.pageInfo.endCursor);
       url.search = String(searchParams);
       return pipe(
-        fetchAndValidate(String(url)),
+        fetchAndValidate(url.href),
         TE.chain(res => {
           res.items.push(...result.items);
           return handleNextPage(res);
@@ -55,7 +55,7 @@ function fetchProjectDetails(sc: string, org: string, project: string) {
   }
 
   return pipe(
-    fetchAndValidate(String(url)),
+    fetchAndValidate(url.href),
     TE.chain(handleNextPage),
   );
 }
@@ -80,7 +80,7 @@ function findHttpOperations(projectNodes: ApiResult['items'], serviceNode: ApiRe
           .map(operationNode => {
             const searchParams = new URLSearchParams({ srn: operationNode.srn });
             url.search = String(searchParams);
-            return fetch(String(url))
+            return fetch(url.href)
               .then(data => data.text())
               .then<IHttpOperation>(parse);
           }),
