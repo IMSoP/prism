@@ -22,7 +22,9 @@ type ApiLocationInfo = { sc: string; org: string; project: string; serviceName: 
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
-function createPrismInput(url: URL, body: unknown, method: HttpMethod) {
+const logger = createLogger('Server');
+
+function createPrismInput(url: URL, body: unknown, method: HttpMethod): IHttpRequest {
   return {
     body,
     method,
@@ -32,8 +34,6 @@ function createPrismInput(url: URL, body: unknown, method: HttpMethod) {
     },
   };
 }
-
-const logger = createLogger('Server');
 
 function validateInputAndMock(resource: IHttpOperation, element: IHttpRequest, config: IHttpOperationConfig) {
   return pipe(
@@ -63,7 +63,7 @@ const server = micri(
           new URI.Template('/{sc}/{org}/{project}/{serviceName}{/prismUrl*}').match(req.url),
         ),
         O.fold(
-          () => send(res, 404),
+          () => send(res, 422, 'The route does not have enough informations to look up your API.'),
           async params => {
             const bodyPromise = typeis(req, ['application/json', 'application/*+json']) ? json(req) : text(req);
             const parsedUrl = new URL(

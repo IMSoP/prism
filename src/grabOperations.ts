@@ -10,6 +10,7 @@ import * as fetchFactory from 'make-fetch-happen';
 import { NOT_FOUND } from '@stoplight/prism-http';
 import { ProblemJsonError } from '@stoplight/prism-core';
 import { ApiResult, ApiResultDecoder, hasNextPage } from './decoders/apiResult';
+import { INVALID_API_RESPONSE } from './errors';
 
 const apiBaseUrl = process.env.STOPLIGHT_BASE_URL || 'https://stoplight.io/';
 
@@ -20,12 +21,12 @@ const fetch: typeof import('node-fetch').default = fetchFactory.defaults({
 
 function fetchAndValidate(url: string): TE.TaskEither<Error, ApiResult> {
   return pipe(
-    TE.tryCatch(() => fetch(url).then(d => d.json()), E.toError),
+    TE.tryCatch<Error, unknown>(() => fetch(url).then(d => d.json()), E.toError),
     TE.chain(payload =>
-      TE.fromEither(
+      TE.fromEither<Error, ApiResult>(
         pipe(
           ApiResultDecoder.decode(payload),
-          E.mapLeft(e => new Error(failure(e).join(','))),
+          E.mapLeft(e => ProblemJsonError.fromTemplate(INVALID_API_RESPONSE, failure(e).join('; '))),
         ),
       ),
     ),

@@ -19,11 +19,11 @@ export const ApiResultDecoder = t.type({
 export type ApiResult = t.TypeOf<typeof ApiResultDecoder>;
 export type ApiResultWithNextPage = ApiResult & {
   pageInfo: {
-    hasNextPage: true,
-    endCursor: string
-  }
-}
+    hasNextPage: true;
+    endCursor: string;
+  };
+};
 
 export function hasNextPage(result: ApiResult): result is ApiResultWithNextPage {
-  return result.pageInfo.hasNextPage
+  return result.pageInfo.hasNextPage;
 }
