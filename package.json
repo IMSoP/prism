@@ -20,6 +20,7 @@
     "@stoplight/types": "11.2.0",
     "@stoplight/yaml": "3.3.2",
     "fp-ts": "2.1.1",
+    "io-ts": "^2.0.1",
     "make-fetch-happen": "6.0.1",
     "micri": "2.0.1",
     "tslib": "1.10.0",

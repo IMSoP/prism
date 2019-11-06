@@ -3,11 +3,13 @@ import { IHttpOperation } from '@stoplight/types'
 import * as TE from 'fp-ts/lib/TaskEither'
 import * as E from 'fp-ts/lib/Either'
 import * as A from 'fp-ts/lib/Array'
+import { failure } from 'io-ts/lib/PathReporter';
 import { pipe } from 'fp-ts/lib/pipeable'
 //@ts-ignore
 import * as fetchFactory from 'make-fetch-happen'
 import { NOT_FOUND } from '@stoplight/prism-http'
 import { ProblemJsonError } from '@stoplight/prism-core'
+import { ApiResult, ApiResultDecoder } from './decoders/apiResult'
 
 const apiBaseUrl = process.env.STOPLIGHT_BASE_URL || 'https://stoplight.io/';
 
@@ -15,20 +17,6 @@ const fetch: typeof import('node-fetch').default = fetchFactory.defaults({
   cacheManager: './cache',
   cache: process.env.NODE_ENV === 'production' ? 'default' : 'no-cache',
 })
-
-type ApiResult = {
-  items: {
-    type: string
-    id: string
-    srn: string
-  }[]
-  pageInfo: {
-    endCursor: string
-    hasNextPage: boolean
-    hasPreviousPage: boolean
-    startCursor: string
-  }
-}
 
 function fetchProjectDetails(sc: string, org: string, project: string) {
 
@@ -38,15 +26,10 @@ function fetchProjectDetails(sc: string, org: string, project: string) {
 
   function handleNextPage(result: ApiResult): TE.TaskEither<Error, ApiResult> {
     if (result.pageInfo.hasNextPage) {
+      searchParams.append('after', result.pageInfo.endCursor)
+      url.search = String(searchParams);
       return pipe(
-        TE.tryCatch<Error, ApiResult>(
-          () => {
-            searchParams.append('after', result.pageInfo.endCursor)
-            url.search = String(searchParams);
-            return fetch(String(url)).then(d => d.json())
-          },
-          E.toError
-        ),
+        fetchAndValidate(String(url)),
         TE.chain(res => {
           res.items.push(...result.items)
           return handleNextPage(res)
@@ -54,12 +37,25 @@ function fetchProjectDetails(sc: string, org: string, project: string) {
       )
     }
 
-    return TE.right<Error, ApiResult>(result)
+    return TE.right(result)
   }
 
   return pipe(
-    TE.tryCatch<Error, ApiResult>(() => fetch(String(url)).then(d => d.json()), E.toError),
+    fetchAndValidate(String(url)),
     TE.chain(handleNextPage)
+  )
+}
+
+function fetchAndValidate(url: string) {
+  return pipe(
+    TE.tryCatch(() => fetch(url).then(d => d.json()), E.toError),
+    TE.chain(payload =>
+      TE.fromEither(
+        pipe(ApiResultDecoder.decode(payload),
+          E.mapLeft(e => new Error(failure(e).join(',')))
+        )
+      )
+    )
   )
 }
 
