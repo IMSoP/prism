@@ -15,12 +15,11 @@ import * as RTE from 'fp-ts/lib/ReaderTaskEither';
 import * as O from 'fp-ts/lib/Option';
 import { ProblemJsonError, IPrismDiagnostic } from '@stoplight/prism-core';
 import { IHttpRequest, IHttpOperationConfig } from '@stoplight/prism-http';
+import { EnvDecoder, Env } from './decoders/env';
 // @ts-ignore
 import { URI } from 'uri-template-lite';
 
 type ApiLocationInfo = { sc: string; org: string; project: string; serviceName: string; prismUrl: string[] };
-
-const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
 const logger = createLogger('Server');
 
@@ -51,45 +50,62 @@ function readConfigFromQueryString(queryString: URLSearchParams): IHttpOperation
   };
 }
 
-const server = micri(
-  Router.router(
-    Router.on.get(
-      (req: IncomingMessage) => req.url === '/_health',
-      (_req: IncomingMessage, res: ServerResponse) => send(res, 200),
+function createServer(env: Env) {
+  return micri(
+    Router.router(
+      Router.on.get(
+        (req: IncomingMessage) => req.url === '/_health',
+        (_req: IncomingMessage, res: ServerResponse) => send(res, 200),
+      ),
+      Router.otherwise(function requestHandler(req, res) {
+        return pipe(
+          O.fromNullable<ApiLocationInfo>(
+            new URI.Template('/{sc}/{org}/{project}/{serviceName}{/prismUrl*}').match(req.url),
+          ),
+          O.fold(
+            () => send(res, 422, 'The route does not have enough informations to look up your API.'),
+            async params => {
+              const bodyPromise = typeis(req, ['application/json', 'application/*+json']) ? json(req) : text(req);
+              const parsedUrl = new URL(
+                Array.isArray(params.prismUrl) ? params.prismUrl.join('/') : params.prismUrl,
+                env.BASE_URL,
+              );
+              const configFromQueryString = readConfigFromQueryString(parsedUrl.searchParams);
+
+              const body = await bodyPromise;
+              const input = createPrismInput(parsedUrl, body, req.method as HttpMethod);
+
+              return pipe(
+                RTE.fromTaskEither(
+                  grabOperationsSomehow(params.sc, params.org, params.project, params.serviceName)(
+                    env.STOPLIGHT_BASE_URL,
+                  ),
+                ),
+                RTE.chain(resources => RTE.fromEither(route({ resources, input }))),
+                RTE.chain(resource =>
+                  RTE.fromReaderEither(validateInputAndMock(resource, input, configFromQueryString)),
+                ),
+                RTE.mapLeft(e => ProblemJsonError.fromPlainError(e)),
+                RTE.fold(
+                  e => R.of(T.of(send(res, e.status, e))),
+                  response => R.of(T.of(send(res, response.statusCode, response.body))),
+                ),
+              )(logger)();
+            },
+          ),
+        );
+      }),
     ),
-    Router.otherwise(function requestHandler(req, res) {
-      return pipe(
-        O.fromNullable<ApiLocationInfo>(
-          new URI.Template('/{sc}/{org}/{project}/{serviceName}{/prismUrl*}').match(req.url),
-        ),
-        O.fold(
-          () => send(res, 422, 'The route does not have enough informations to look up your API.'),
-          async params => {
-            const bodyPromise = typeis(req, ['application/json', 'application/*+json']) ? json(req) : text(req);
-            const parsedUrl = new URL(
-              Array.isArray(params.prismUrl) ? params.prismUrl.join('/') : params.prismUrl,
-              baseUrl,
-            );
-            const configFromQueryString = readConfigFromQueryString(parsedUrl.searchParams);
+  );
+}
 
-            const body = await bodyPromise;
-            const input = createPrismInput(parsedUrl, body, req.method as HttpMethod);
-
-            return pipe(
-              RTE.fromTaskEither(grabOperationsSomehow(params.sc, params.org, params.project, params.serviceName)),
-              RTE.chain(resources => RTE.fromEither(route({ resources, input }))),
-              RTE.chain(resource => RTE.fromReaderEither(validateInputAndMock(resource, input, configFromQueryString))),
-              RTE.mapLeft(e => ProblemJsonError.fromPlainError(e)),
-              RTE.fold(
-                e => R.of(T.of(send(res, e.status, e))),
-                response => R.of(T.of(send(res, response.statusCode, response.body))),
-              ),
-            )(logger)();
-          },
-        ),
-      );
-    }),
+pipe(
+  EnvDecoder.decode(process.env),
+  E.fold(
+    e => {
+      console.error('Invalid ENV variables. The server cannot start.');
+      console.error(e);
+    },
+    env => createServer(env).listen(env.PORT, () => console.info('Ready')),
   ),
 );
-
-server.listen(process.env.PORT || 3000, () => console.info('Ready'));
