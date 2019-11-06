@@ -73,16 +73,20 @@ function findServiceNode(projectNodes: ApiResult, serviceName: string) {
 }
 
 function findHttpOperations(projectNodes: ApiResult['items'], serviceNode: ApiResult['items'][0]) {
+  const url = new URL('api/nodes.raw', apiBaseUrl);
+
   return TE.tryCatch(
     () =>
       Promise.all(
         projectNodes
           .filter(node => node.type === 'http_operation' && node.srn.indexOf(serviceNode.srn))
-          .map(operationNode =>
-            fetch(`https://stoplight.io/api/nodes.raw?srn=${encodeURIComponent(operationNode.srn)}`)
+          .map(operationNode => {
+            const searchParams = new URLSearchParams({ srn: operationNode.srn });
+            url.search = String(searchParams);
+            return fetch(String(url))
               .then(data => data.text())
               .then<IHttpOperation>(parse)
-          )
+          })
       ),
     E.toError
   )
