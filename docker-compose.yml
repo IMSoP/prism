@@ -1,0 +1,14 @@
+version: '3.4'
+services:
+  nasino:
+    build:
+      context: .
+      target: compiler
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      BASE_URL: http://localhost:3000
+      STOPLIGHT_BASE_URL: https://stoplight.io/
+    volumes:
+    - ./src:/usr/src/prism/src
+    command: yarn watch

@@ -106,6 +106,6 @@ pipe(
       console.error('Invalid ENV variables. The server cannot start.');
       console.error(e);
     },
-    env => createServer(env).listen(env.PORT, () => console.info('Ready')),
+    env => createServer(env).listen(env.PORT, () => console.info(`Accepting requests at port ${env.PORT}`)),
   ),
 );
